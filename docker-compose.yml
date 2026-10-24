@@ -35,6 +35,20 @@ services:
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
 
     
+  analytics-real-estate:
+    build:
+      context: ./analytics
+      dockerfile: Dockerfile.real-estate
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://cars_app:${POSTGRES_PASSWORD:-cars_dev_change_me}@db:5432/car_market
+    volumes:
+      - ./:/input:ro
+      - ./reports:/reports
+
   analytics:
     build: ./analytics
     profiles: ["tools"]

@@ -6,3 +6,7 @@ __pycache__/
 # Local Python environments
 venv/
 .venv/
+
+# Downloaded property listings and generated real-estate reports
+real_estate/
+reports/real_estate/

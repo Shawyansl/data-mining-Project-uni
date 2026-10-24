@@ -1,0 +1,11 @@
+apiVersion: 1
+providers:
+  - name: Real-estate market
+    orgId: 1
+    folder: Real-estate market
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards/real-estate

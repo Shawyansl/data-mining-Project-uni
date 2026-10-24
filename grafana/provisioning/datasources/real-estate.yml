@@ -1,0 +1,17 @@
+apiVersion: 1
+datasources:
+  - name: Real Estate PostgreSQL
+    uid: real-estate-postgres
+    type: postgres
+    access: proxy
+    url: db:5432
+    user: cars_app
+    isDefault: false
+    editable: false
+    secureJsonData:
+      password: $CARS_DB_PASSWORD
+    jsonData:
+      database: car_market
+      sslmode: disable
+      postgresVersion: 1800
+      timescaledb: false
