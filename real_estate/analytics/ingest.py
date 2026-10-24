@@ -4,9 +4,12 @@ from __future__ import annotations
 import argparse, os
 from pathlib import Path
 from statistics import median
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+try:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+except ModuleNotFoundError:
+    plt = None
 import pandas as pd
 from sqlalchemy import create_engine, text
 
@@ -101,6 +104,11 @@ def make_charts(df,out):
             rows.append({"listing_type":typ,"city":key[0],"neighborhood":key[1],"listing_count":len(g),"median_total_toman":g[col].median(),"median_per_sqm_toman":g[col.replace("_toman","_per_sqm")].median()})
     summary=pd.DataFrame(rows)
     summary.to_csv(out/"real_estate_neighborhood_summary.csv",index=False,encoding="utf-8-sig")
+    coverage=pd.DataFrame([{"metric":"Listings","value":len(df)},{"metric":"Sale listings with price","value":int(sale.sale_price_toman.notna().sum())},{"metric":"Rent listings with monthly rent","value":int(rent.monthly_rent_toman.notna().sum())},{"metric":"Listings with estimate","value":int(df.fair_price_toman.notna().sum()+df.fair_monthly_rent_toman.notna().sum())},{"metric":"Anomaly candidates","value":int(df.price_anomaly.fillna(False).sum())}])
+    coverage.to_csv(out/"real_estate_coverage_summary.csv",index=False,encoding="utf-8-sig")
+    if plt is None:
+        print("Matplotlib is not installed; PNG charts skipped.")
+        return
     for typ, color in (("sale", "#277da1"), ("rent", "#43aa8b")):
         top=summary.loc[summary.listing_type.eq(typ)].sort_values("listing_count",ascending=False).head(20).copy()
         if top.empty: continue
@@ -112,11 +120,10 @@ def make_charts(df,out):
         ax.set_title(f"Neighborhood {typ} indicators")
         ax.grid(axis="x",alpha=.25); fig.tight_layout()
         fig.savefig(out/f"real_estate_{typ}_neighborhoods.png",dpi=160); plt.close(fig)
-    coverage=pd.DataFrame([{"metric":"Listings","value":len(df)},{"metric":"Sale listings with price","value":int(sale.sale_price_toman.notna().sum())},{"metric":"Rent listings with monthly rent","value":int(rent.monthly_rent_toman.notna().sum())},{"metric":"Listings with estimate","value":int(df.fair_price_toman.notna().sum()+df.fair_monthly_rent_toman.notna().sum())},{"metric":"Anomaly candidates","value":int(df.price_anomaly.fillna(False).sum())}])
-    coverage.to_csv(out/"real_estate_coverage_summary.csv",index=False,encoding="utf-8-sig")
     fig,ax=plt.subplots(figsize=(9,5)); ax.bar(coverage.metric,coverage.value,color=["#4d908e","#577590","#43aa8b","#f9c74f","#f94144"])
     ax.set_ylabel("Listing count"); ax.set_title("Real-estate data and estimate coverage"); ax.tick_params(axis="x",rotation=15); ax.grid(axis="y",alpha=.25)
     fig.tight_layout(); fig.savefig(out/"real_estate_coverage.png",dpi=160); plt.close(fig)
+
 
 def write_db(df,url):
     for col in DB_COLS:
@@ -147,8 +154,8 @@ def write_db(df,url):
 
 def main():
     p=argparse.ArgumentParser(description="Pandas analysis and PostgreSQL loader for Sheypoor property CSV")
-    p.add_argument("--csv",type=Path,default=Path("/input/real_estate/sheypoor_properties.csv"))
-    p.add_argument("--reports-dir",type=Path,default=Path("/reports/real_estate"))
+    p.add_argument("--csv",type=Path,default=Path("data/real_estate/seed_sheypoor_properties.csv"))
+    p.add_argument("--reports-dir",type=Path,default=Path("reports/real_estate"))
     p.add_argument("--min-peers",type=int,default=2)
     p.add_argument("--anomaly-threshold",type=float,default=3.5)
     a=p.parse_args()

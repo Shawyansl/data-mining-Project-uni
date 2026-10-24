@@ -3,9 +3,12 @@ import os
 from pathlib import Path
 from statistics import median
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+try:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+except ModuleNotFoundError:
+    plt = None
 import pandas as pd
 from sqlalchemy import create_engine, text
 
@@ -84,6 +87,14 @@ def charts(df, out):
              min_price_toman=("price_toman","min"),max_price_toman=("price_toman","max"))
         .reset_index().sort_values("median_price_toman"))
     summary.to_csv(out/"variant_summary.csv",index=False,encoding="utf-8-sig")
+    counts={"Listings":len(df),"Valid prices":int(df.price_valid.sum()),
+            "Fair-price estimates":int(df.fair_price_toman.notna().sum()),
+            "Underpriced candidates":int(df.underpriced.fillna(False).sum())}
+    pd.DataFrame([{"metric":k,"value":v} for k,v in counts.items()]).to_csv(
+        out/"coverage_summary.csv",index=False,encoding="utf-8-sig")
+    if plt is None:
+        print("Matplotlib is not installed; PNG charts skipped.")
+        return
     if not summary.empty:
         fig,ax=plt.subplots(figsize=(11,max(5,.45*len(summary))))
         labels=[f"{r.variant_key} (n={int(r.listing_count)})" for r in summary.itertuples()]
@@ -106,13 +117,9 @@ def charts(df, out):
         ax.set_xlabel("Jalali model year"); ax.set_ylabel("Valid-price listing count")
         ax.set_title("Sample count by model year"); ax.grid(axis="y",alpha=.25); fig.tight_layout()
         fig.savefig(out/"03_sample_count_by_year.png",dpi=160); plt.close(fig)
-    counts={"Listings":len(df),"Valid prices":int(df.price_valid.sum()),
-            "Fair-price estimates":int(df.fair_price_toman.notna().sum()),
-            "Underpriced candidates":int(df.underpriced.fillna(False).sum())}
     fig,ax=plt.subplots(figsize=(9,5)); ax.bar(list(counts),list(counts.values()),color=["#6baed6","#31a354","#756bb1","#e6550d"])
     ax.set_ylabel("Listing count"); ax.set_title("Data and estimate coverage"); ax.grid(axis="y",alpha=.25)
     fig.tight_layout(); fig.savefig(out/"04_data_and_estimate_coverage.png",dpi=160); plt.close(fig)
-    pd.DataFrame([{"metric":k,"value":v} for k,v in counts.items()]).to_csv(out/"coverage_summary.csv",index=False,encoding="utf-8-sig")
 
 
 def write_db(df,url):
@@ -143,8 +150,8 @@ def write_db(df,url):
 
 def main():
     p=argparse.ArgumentParser(description="Pandas analysis and PostgreSQL loader for Bama CSV")
-    p.add_argument("--csv",type=Path,default=Path("/input/cars_test.csv"))
-    p.add_argument("--reports-dir",type=Path,default=Path("/reports"))
+    p.add_argument("--csv",type=Path,default=Path("cars/sample.csv"))
+    p.add_argument("--reports-dir",type=Path,default=Path("reports/cars"))
     p.add_argument("--min-peers",type=int,default=2)
     p.add_argument("--underpriced-threshold",type=float,default=.15)
     a=p.parse_args()

@@ -213,7 +213,7 @@ def main() -> int:
     parser.add_argument("--pages", type=int, default=1, help="حداکثر صفحه در هر دسته؛ page_num طبق robots.txt")
     parser.add_argument("--delay", type=float, default=2.0, help="مکث بین صفحات، ثانیه")
     parser.add_argument("--timeout", type=int, default=25)
-    parser.add_argument("--output", default="real_estate/sheypoor_properties.csv")
+    parser.add_argument("--output", default="data/real_estate/sheypoor_properties.csv")
     parser.add_argument("--format", choices=("csv", "json"), default="csv")
     args = parser.parse_args()
     if args.pages < 1 or args.delay < 0:

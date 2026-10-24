@@ -1,14 +1,12 @@
 name: car-market
 services:
   db:
-    image: postgres:18.6-alpine
+    image: docker.arvancloud.ir/library/postgres:18.6-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: car_market
       POSTGRES_USER: cars_app
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cars_dev_change_me}
-    ports:
-      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
@@ -16,14 +14,15 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
   grafana:
-    image: grafana/grafana:13.2.2
+    image: docker.arvancloud.ir/grafana/grafana:13.2.2
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     ports:
-      - "${GRAFANA_PORT:-3000}:3000"
+      - "${GRAFANA_PORT:-3001}:3000"
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin_change_me}
@@ -34,32 +33,22 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
 
-    
-  analytics-real-estate:
+  pipeline:
     build:
-      context: ./analytics
-      dockerfile: Dockerfile.real-estate
+      context: .
+      dockerfile: pipeline/Dockerfile
     profiles: ["tools"]
     depends_on:
       db:
         condition: service_healthy
+      grafana:
+        condition: service_started
     environment:
       DATABASE_URL: postgresql+psycopg://cars_app:${POSTGRES_PASSWORD:-cars_dev_change_me}@db:5432/car_market
     volumes:
-      - ./:/input:ro
+      - ./data:/data
       - ./reports:/reports
 
-  analytics:
-    build: ./analytics
-    profiles: ["tools"]
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql+psycopg://cars_app:${POSTGRES_PASSWORD:-cars_dev_change_me}@db:5432/car_market
-    volumes:
-      - ./:/input:ro
-      - ./reports:/reports
 volumes:
   postgres_data:
   grafana_data:
