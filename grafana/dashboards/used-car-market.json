@@ -1,0 +1,542 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0,211,255,1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": false,
+  "graphTooltip": 0,
+  "id": null,
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "تعداد آگهی‌های یکتا",
+      "datasource": {
+        "type": "postgres",
+        "uid": "car-market-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "car-market-postgres"
+          },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*)::bigint AS value FROM car_listings_current;",
+          "editorMode": "code",
+          "sql": {
+            "columns": [],
+            "groupBy": [],
+            "limit": 50
+          }
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "قیمت معتبر",
+      "datasource": {
+        "type": "postgres",
+        "uid": "car-market-postgres"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "car-market-postgres"
+          },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*)::bigint AS value FROM car_listings_current WHERE price_valid IS TRUE;",
+          "editorMode": "code",
+          "sql": {
+            "columns": [],
+            "groupBy": [],
+            "limit": 50
+          }
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "میانه قیمت (میلیارد تومان)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "car-market-postgres"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "car-market-postgres"
+          },
+          "format": "table",
+          "rawSql": "SELECT COALESCE(percentile_cont(0.5) WITHIN GROUP (ORDER BY price_toman),0)/1e9 AS value FROM car_listings_current WHERE price_valid IS TRUE;",
+          "editorMode": "code",
+          "sql": {
+            "columns": [],
+            "groupBy": [],
+            "limit": 50
+          }
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "آگهی‌های دارای برآورد",
+      "datasource": {
+        "type": "postgres",
+        "uid": "car-market-postgres"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "car-market-postgres"
+          },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*)::bigint AS value FROM car_listings_current WHERE fair_price_toman IS NOT NULL;",
+          "editorMode": "code",
+          "sql": {
+            "columns": [],
+            "groupBy": [],
+            "limit": 50
+          }
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "barchart",
+      "title": "میانه قیمت هر واریانت (میلیارد تومان)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "car-market-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "car-market-postgres"
+          },
+          "format": "table",
+          "rawSql": "SELECT variant_key AS metric, percentile_cont(0.5) WITHIN GROUP (ORDER BY price_toman)/1e9 AS value FROM car_listings_current WHERE price_valid IS TRUE AND variant_key IS NOT NULL GROUP BY variant_key ORDER BY value DESC LIMIT 15;",
+          "editorMode": "code",
+          "sql": {
+            "columns": [],
+            "groupBy": [],
+            "limit": 50
+          }
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "legend": {
+          "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "barchart",
+      "title": "تعداد نمونه بر اساس سال ساخت",
+      "datasource": {
+        "type": "postgres",
+        "uid": "car-market-postgres"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "car-market-postgres"
+          },
+          "format": "table",
+          "rawSql": "SELECT year_jalali::text AS metric, COUNT(*)::bigint AS value FROM car_listings_current WHERE year_jalali IS NOT NULL GROUP BY year_jalali ORDER BY year_jalali;",
+          "editorMode": "code",
+          "sql": {
+            "columns": [],
+            "groupBy": [],
+            "limit": 50
+          }
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "legend": {
+          "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "barchart",
+      "title": "تعداد آگهی در شهرها",
+      "datasource": {
+        "type": "postgres",
+        "uid": "car-market-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "car-market-postgres"
+          },
+          "format": "table",
+          "rawSql": "SELECT COALESCE(city,'نامشخص') AS metric, COUNT(*)::bigint AS value FROM car_listings_current GROUP BY city ORDER BY value DESC LIMIT 12;",
+          "editorMode": "code",
+          "sql": {
+            "columns": [],
+            "groupBy": [],
+            "limit": 50
+          }
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "legend": {
+          "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "تعداد نمونه‌های جمع‌آوری‌شده در زمان",
+      "datasource": {
+        "type": "postgres",
+        "uid": "car-market-postgres"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 13,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "car-market-postgres"
+          },
+          "format": "time_series",
+          "rawSql": "SELECT date_trunc('day',scraped_at) AS time, COUNT(DISTINCT ad_id)::bigint AS listings FROM car_listing_snapshots WHERE $__timeFilter(scraped_at) GROUP BY 1 ORDER BY 1;",
+          "editorMode": "code",
+          "sql": {
+            "columns": [],
+            "groupBy": [],
+            "limit": 50
+          }
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "آگهی‌های زیرقیمت با حداقل دو همتا",
+      "datasource": {
+        "type": "postgres",
+        "uid": "car-market-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "car-market-postgres"
+          },
+          "format": "table",
+          "rawSql": "SELECT title,price_toman AS asking_price_toman,fair_price_toman,discount_pct,comparable_count,city,url FROM car_listings_current WHERE underpriced IS TRUE ORDER BY discount_pct DESC;",
+          "editorMode": "code",
+          "sql": {
+            "columns": [],
+            "groupBy": [],
+            "limit": 50
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ]
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "piechart",
+      "title": "کیفیت قیمت‌ها",
+      "datasource": {
+        "type": "postgres",
+        "uid": "car-market-postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "car-market-postgres"
+          },
+          "format": "table",
+          "rawSql": "SELECT CASE WHEN price_valid IS TRUE THEN 'قیمت معتبر' ELSE 'نامعتبر/توافقی/کم' END AS metric,COUNT(*)::bigint AS value FROM car_listings_current GROUP BY 1 ORDER BY value DESC;",
+          "editorMode": "code",
+          "sql": {
+            "columns": [],
+            "groupBy": [],
+            "limit": 50
+          }
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "پوشش قیمت منصفانه هر واریانت",
+      "datasource": {
+        "type": "postgres",
+        "uid": "car-market-postgres"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 30,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "car-market-postgres"
+          },
+          "format": "table",
+          "rawSql": "SELECT variant_key,COUNT(*) AS sample_count,COUNT(*) FILTER (WHERE fair_price_toman IS NOT NULL) AS estimated_count,ROUND(AVG(discount_pct)::numeric,1) AS avg_discount_pct FROM car_listings_current GROUP BY variant_key ORDER BY sample_count DESC;",
+          "editorMode": "code",
+          "sql": {
+            "columns": [],
+            "groupBy": [],
+            "limit": 50
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ]
+        }
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": [
+    "used-cars",
+    "iran",
+    "pandas"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-2y",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "بازار خودروهای کارکرده | Bama",
+  "uid": "car-market-dashboard",
+  "version": 1
+}

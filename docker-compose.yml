@@ -1,0 +1,51 @@
+name: car-market
+services:
+  db:
+    image: postgres:18.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: car_market
+      POSTGRES_USER: cars_app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cars_dev_change_me}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cars_app -d car_market"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  grafana:
+    image: grafana/grafana:13.2.2
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin_change_me}
+      GF_PLUGINS_PREINSTALL_AUTO_UPDATE: "false"
+      CARS_DB_PASSWORD: ${POSTGRES_PASSWORD:-cars_dev_change_me}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+    
+  analytics:
+    build: ./analytics
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://cars_app:${POSTGRES_PASSWORD:-cars_dev_change_me}@db:5432/car_market
+    volumes:
+      - ./:/input:ro
+      - ./reports:/reports
+volumes:
+  postgres_data:
+  grafana_data:

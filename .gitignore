@@ -1,0 +1,8 @@
+.env
+reports/*.png
+reports/*.csv
+__pycache__/
+
+# Local Python environments
+venv/
+.venv/
