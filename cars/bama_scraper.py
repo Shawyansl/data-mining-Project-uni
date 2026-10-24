@@ -542,10 +542,19 @@ def fetch_cards(session: requests.Session, url: str, pages: int, delay: float,
     out: list[tuple[str, str, str, str]] = []
     reason = f"به سقف --pages={pages} رسید"
     for page in range(1, pages + 1):
-        response = session.get(listing_url(url, page), timeout=timeout)
+        requested_url = listing_url(url, page)
+        response = session.get(requested_url, timeout=timeout)
         if response.status_code == 404:
             return out, "HTTP 404" if page == 1 else f"صفحه {page} وجود نداشت (404)"
         response.raise_for_status()
+        if page > 1:
+            final_query = dict(parse_qsl(urlsplit(response.url).query, keep_blank_values=True))
+            if final_query.get(PAGE_PARAM) != str(page):
+                reason = (
+                    f"باما درخواست صفحه {page} را به صفحهٔ اول برگرداند؛ "
+                    f"پارامتر صفحه‌بندی «{PAGE_PARAM}» پذیرفته نشد"
+                )
+                break
         fetched_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
         cards = _card_map(BeautifulSoup(response.text, "html.parser"))
         if not cards:
@@ -848,7 +857,8 @@ def save_csv(listings: Iterable[Listing], path: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="دریافت آگهی‌های عمومی خودرو از باما")
     parser.add_argument("--url", default=f"{BASE_URL}/car", help="نشانی صفحه خودرو یا صفحه نتایج فیلترشده")
-    parser.add_argument("--pages", type=int, default=1, help="حداکثر تعداد صفحات (پارامتر page به URL افزوده می‌شود)")
+    parser.add_argument("--pages", type=int, default=1,
+                        help="سقف صفحه برای هر جست‌وجو؛ ادامه به پشتیبانی صفحه‌بندی باما بستگی دارد")
     parser.add_argument("--delay", type=float, default=1.5, help="مکث بین درخواست‌ها، بر حسب ثانیه")
     parser.add_argument("--timeout", type=int, default=25)
     parser.add_argument("--details", action="store_true", help="دریافت جزئیات عمومی هر آگهی؛ درخواست بیشتر می‌فرستد")

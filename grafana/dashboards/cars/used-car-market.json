@@ -344,7 +344,7 @@
     {
       "id": 8,
       "type": "timeseries",
-      "title": "تعداد نمونه‌های جمع‌آوری‌شده در زمان",
+      "title": "تعداد آگهی دریافتی در هر درخواست",
       "datasource": {
         "type": "postgres",
         "uid": "car-market-postgres"
@@ -363,7 +363,7 @@
             "uid": "car-market-postgres"
           },
           "format": "time_series",
-          "rawSql": "SELECT date_trunc('day',scraped_at) AS time, COUNT(DISTINCT ad_id)::bigint AS listings FROM car_listing_snapshots WHERE $__timeFilter(scraped_at) GROUP BY 1 ORDER BY 1;",
+          "rawSql": "SELECT scraped_at AS time, COUNT(DISTINCT ad_id)::bigint AS listings FROM car_listing_snapshots WHERE $__timeFilter(scraped_at) GROUP BY scraped_at ORDER BY scraped_at;",
           "editorMode": "code",
           "sql": {
             "columns": [],
@@ -381,7 +381,9 @@
         "tooltip": {
           "mode": "single",
           "sort": "none"
-        }
+        },
+        "showPoints": "always",
+        "pointSize": 5
       }
     },
     {
@@ -429,8 +431,8 @@
     },
     {
       "id": 10,
-      "type": "piechart",
-      "title": "کیفیت قیمت‌ها",
+      "type": "barchart",
+      "title": "کیفیت قیمت‌ها و دلیل نامعتبر بودن",
       "datasource": {
         "type": "postgres",
         "uid": "car-market-postgres"
@@ -449,7 +451,7 @@
             "uid": "car-market-postgres"
           },
           "format": "table",
-          "rawSql": "SELECT CASE WHEN price_valid IS TRUE THEN 'قیمت معتبر' ELSE 'نامعتبر/توافقی/کم' END AS metric,COUNT(*)::bigint AS value FROM car_listings_current GROUP BY 1 ORDER BY value DESC;",
+          "rawSql": "WITH quality AS (SELECT CASE WHEN price_valid IS TRUE THEN 'قیمت معتبر' WHEN price_is_agreed IS TRUE THEN 'توافقی' WHEN price_toman IS NULL THEN 'قیمت استخراج نشده' WHEN price_toman < 100000000 THEN 'قیمت کمتر از حد تحلیل' WHEN mileage_km > 1500000 THEN 'کارکرد خارج از محدوده' ELSE 'سایر موارد نامعتبر' END AS reason,COUNT(*)::bigint AS n FROM car_listings_current GROUP BY 1) SELECT reason || ' (' || ROUND(100.0*n/NULLIF(SUM(n) OVER (),0),1) || '%)' AS metric,n AS value FROM quality ORDER BY n DESC;",
           "editorMode": "code",
           "sql": {
             "columns": [],
@@ -459,21 +461,17 @@
         }
       ],
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "right",
-          "showLegend": true
-        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "groupWidth": 0.7,
+        "barWidth": 0.9,
+        "stacking": "none",
         "tooltip": {
           "mode": "single",
           "sort": "none"
         },
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
+        "legend": {
+          "showLegend": false
         }
       }
     },
