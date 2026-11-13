@@ -1,133 +1,133 @@
-# پایپ‌لاین تحلیل بازار خودرو و املاک
+# Car and Real-Estate Market Analysis Pipeline
 
-این پروژه آگهی‌های عمومی **خودرو از باما** و **ملک از شیپور** را جمع می‌کند، برای هر دور فایل CSV می‌سازد، قیمت‌ها را با آگهی‌های مشابه مقایسه می‌کند، نتیجه را به PostgreSQL اضافه می‌کند و در Grafana نشان می‌دهد.
+This project collects public **car listings from Bama** and **real-estate listings from Sheypoor**, builds a separate CSV file for each run, compares prices against similar listings, appends the results to PostgreSQL, and displays them in Grafana.
 
 ```text
-اجرا → دریافت آگهی‌های باما و شیپور → CSV جداگانه → تحلیل قیمت → افزودن snapshot به PostgreSQL → داشبوردهای Grafana
+Run → fetch Bama and Sheypoor listings → separate CSVs → price analysis → append snapshot to PostgreSQL → Grafana dashboards
 ```
 
-قیمت‌ها قیمت پیشنهادی آگهی هستند و ممکن است با قیمت معامله فرق داشته باشند. تحلیل‌ها baseline آماری قابل توضیح‌اند و مدل یادگیری ماشین آموزش‌دیده نیستند.
+Prices are the asking prices in the listings and may differ from actual transaction prices. The analyses are explainable statistical baselines, not trained machine-learning models.
 
-## اجرای پروژه از ابتدا
+## Running the Project from Scratch
 
-### پیش‌نیاز
+### Prerequisites
 
-- Docker و Docker Compose نصب و فعال باشد.
-- اجرای اول برای ساخت imageها و دریافت آگهی‌ها به اینترنت نیاز دارد.
-- همهٔ دستورهای زیر را از پوشهٔ اصلی پروژه اجرا کنید.
+- Docker and Docker Compose must be installed and running.
+- The first run needs internet access to build the images and fetch listings.
+- Run all the commands below from the project's root folder.
 
-### ۱. تنظیم رمزها
+### 1. Configure passwords
 
 ```bash
 cp .env.example .env
 ```
 
-فایل `.env` را باز کنید و در صورت نیاز رمز PostgreSQL و Grafana را عوض کنید. این فایل محلی است و نباید commit شود. اگر `.env` از قبل دارید، آن را جایگزین نکنید.
+Open the `.env` file and change the PostgreSQL and Grafana passwords if needed. This file is local and must not be committed. If you already have a `.env`, do not overwrite it.
 
-### ۲. ساخت image اسکرپر و تحلیل
+### 2. Build the scraper and analysis image
 
 ```bash
 docker compose --profile tools build pipeline
 ```
 
-Docker imageها از رجیستری آروان و کتابخانه‌های Python از آینهٔ PyPI لیارا نصب می‌شوند. این مرحله فقط لازم است بار اول یا بعد از تغییر کد/وابستگی‌ها انجام شود.
+Docker images are pulled from the ArvanCloud registry, and Python libraries are installed from the Liara PyPI mirror. This step is only needed the first time or after changing code/dependencies.
 
-### ۳. اجرای هر دو اسکرپر و ذخیره در دیتابیس
-
-```bash
-docker compose --profile tools run --rm pipeline --pages 1
-```
-
-این دستور دیتابیس و Grafana را هم در صورت نیاز بالا می‌آورد، سپس خودرو و املاک را می‌گیرد، تحلیل می‌کند و snapshotهای موفق را به PostgreSQL اضافه می‌کند. گزینهٔ `--pages 1` یعنی حداکثر یک صفحه برای هر جست‌وجوی خودرو و هر دستهٔ ملک.
-
-در انتهای اجرا باید پیام موفقیت برای هر دو بازار و شناسهٔ اجرا (`run-id`) ببینید. خروجی‌های همان دور اینجا هستند:
-
-- CSV خودرو: `data/cars/run_<run-id>.csv`
-- CSV املاک: `data/real_estate/run_<run-id>.csv`
-- گزارش‌ها و نمودارها: `reports/<run-id>/cars/` و `reports/<run-id>/real_estate/`
-
-اگر اجرا با خطا تمام شود، خروجی ترمینال نام بازار ناموفق را نشان می‌دهد. تا وقتی تحلیل و افزودن snapshot برای آن بازار موفق نشده، دادهٔ تازه‌اش در داشبورد ظاهر نمی‌شود.
-
-### ۴. باز کردن داشبورد
-
-آدرس پیش‌فرض Grafana: [http://localhost:3001](http://localhost:3001)
-
-ورود با `GRAFANA_USER` و `GRAFANA_PASSWORD` در `.env` است. در بخش **Dashboards**، پوشه‌های **Used-car market** و **Real-estate market** را باز کنید. داشبورد خودرو هر ۳۰ ثانیه و داشبورد املاک هر ۵ دقیقه تازه می‌شود؛ برای دیدن فوری نتیجه، Refresh را بزنید.
-
-## اجرای دوباره و جمع‌کردن داده برای ارزیابی
-
-همین دستور را هر بار دوباره اجرا کنید:
+### 3. Run both scrapers and save to the database
 
 ```bash
 docker compose --profile tools run --rm pipeline --pages 1
 ```
 
-هر دور فایل CSV جدید با نام یکتا می‌سازد و snapshot جدید را به تاریخچه اضافه می‌کند. جدول‌های قبلی پاک نمی‌شوند. برای دریافت صفحه‌های بیشتر، عدد را افزایش دهید؛ مثلاً:
+This command also starts the database and Grafana if needed, then fetches cars and real estate, analyzes them, and appends the successful snapshots to PostgreSQL. The `--pages 1` option means at most one page per car search and per real-estate category.
+
+At the end of the run, you should see a success message for both markets and a run ID (`run-id`). The outputs of that run are located here:
+
+- Car CSV: `data/cars/run_<run-id>.csv`
+- Real-estate CSV: `data/real_estate/run_<run-id>.csv`
+- Reports and charts: `reports/<run-id>/cars/` and `reports/<run-id>/real_estate/`
+
+If the run fails, the terminal output shows which market failed. Until analysis and snapshot insertion succeed for a market, its fresh data will not appear in the dashboard.
+
+### 4. Open the dashboard
+
+Default Grafana address: [http://localhost:3001](http://localhost:3001)
+
+Log in with `GRAFANA_USER` and `GRAFANA_PASSWORD` from `.env`. Under **Dashboards**, open the **Used-car market** and **Real-estate market** folders. The car dashboard refreshes every 30 seconds and the real-estate dashboard every 5 minutes; click Refresh to see results immediately.
+
+## Re-running and Accumulating Data for Evaluation
+
+Run the same command again each time:
+
+```bash
+docker compose --profile tools run --rm pipeline --pages 1
+```
+
+Each run creates a new CSV file with a unique name and appends a new snapshot to the history. Previous tables are not deleted. To fetch more pages, increase the number, for example:
 
 ```bash
 docker compose --profile tools run --rm pipeline --pages 3
 ```
 
-هر صفحهٔ بیشتر ممکن است زمان اجرا را بالا ببرد. اسکرپرها بین درخواست‌ها مکث دارند تا با سرعت معقول به سایت‌ها درخواست بفرستند.
+Each additional page may increase the run time. The scrapers pause between requests so they send requests to the sites at a reasonable rate.
 
-`--pages` فقط سقف درخواست‌هاست؛ اگر باما صفحهٔ بعد را به صفحهٔ اول برگرداند، اسکرپر همان‌جا متوقف می‌شود و در خلاصه دلیل را می‌نویسد. فهرست خودروهای هدف در `cars/queries.txt` است؛ برای پوشش مدل‌های بیشتر، جست‌وجوهای معتبر دیگری به همان فایل اضافه کنید.
+`--pages` is only a cap on requests; if Bama returns the first page again instead of the next page, the scraper stops there and states the reason in the summary. The list of target cars is in `cars/queries.txt`; to cover more models, add other valid searches to that file.
 
-برای شمارش snapshotها و آگهی‌های یکتا:
+To count snapshots and unique listings:
 
 ```bash
 docker compose exec db psql -U cars_app -d car_market -c "SELECT 'cars' AS market, COUNT(*) AS snapshots, COUNT(DISTINCT ad_id) AS unique_ads FROM car_listing_snapshots UNION ALL SELECT 'real_estate', COUNT(*), COUNT(DISTINCT ad_id) FROM real_estate_listing_snapshots;"
 ```
 
-اگر `snapshots` از `unique_ads` بیشتر شد، یعنی آگهی‌هایی در چند دور دیده شده‌اند و تاریخچه‌شان نگه داشته شده است.
+If `snapshots` is greater than `unique_ads`, some listings were seen in multiple runs and their history has been kept.
 
-## راهنمای خواندن داشبوردها
+## How to Read the Dashboards
 
-### خودرو
+### Cars
 
-داشبورد خودرو تعداد آگهی‌های یکتا، پوشش قیمت معتبر، میانهٔ قیمت و آگهی‌های زیرقیمت را نشان می‌دهد. مقایسه با واریانت یکسان، سال ساخت با اختلاف حداکثر یک سال، صفر/کارکردهٔ یکسان و کارکرد نزدیک انجام می‌شود. حداقل دو همتا برای برآورد لازم است و نامزد زیرقیمت باید دست‌کم ۱۵٪ پایین‌تر از برآورد باشد.
+The car dashboard shows the number of unique listings, valid-price coverage, median price, and underpriced listings. Comparison is done against listings with the same variant, a production year within at most one year, the same zero-km/used status, and similar mileage. At least two peers are required for an estimate, and an underpriced candidate must be at least 15% below the estimate.
 
-### املاک
+### Real Estate
 
-داشبورد املاک فروش و اجاره را جدا می‌کند و میانهٔ قیمت فروش هر متر یا اجارهٔ ماهانه و ودیعه را بر اساس شهر و محله نشان می‌دهد. مقایسهٔ قیمت با آگهی‌های هم‌نوع در همان شهر و محله، متراژ با اختلاف حداکثر ۲۵٪ و تعداد اتاق مشابه (در صورت موجود بودن) انجام می‌شود.
+The real-estate dashboard separates sales and rentals, and shows the median sale price per square meter or the monthly rent and deposit by city and neighborhood. Prices are compared with listings of the same type in the same city and neighborhood, with area differing by at most 25% and a similar number of rooms (when available).
 
-برآورد به حداقل دو همتای قیمت‌دار نیاز دارد. نامزد غیرعادی به حداقل چهار همتا و اختلاف آماری کافی (modified z-score) نیاز دارد. اجارهٔ روزانه در برآورد اجارهٔ ماهانه وارد نمی‌شود.
+An estimate requires at least two priced peers. An anomalous candidate requires at least four peers and a sufficient statistical difference (modified z-score). Daily rentals are not included in the monthly rent estimate.
 
-**صفر بودن برآورد یا نامزد غیرعادی لزوماً به معنی خرابی نیست.** اگر تعداد آگهی‌های یک محله/واریانت یا تعداد قیمت‌های معتبر برای شرط مقایسه کافی نباشد، نتیجه صفر می‌ماند. تکرار اسکرپ از همان آگهی‌ها معمولاً تعداد آگهی‌های یکتا را زیاد نمی‌کند؛ ممکن است فقط تعداد snapshotها بیشتر شود.
+**A zero estimate or zero anomalous candidates does not necessarily mean something is broken.** If the number of listings in a neighborhood/variant, or the number of valid prices, is not enough to satisfy the comparison conditions, the result stays zero. Re-scraping the same listings usually does not increase the number of unique listings; it may only increase the number of snapshots.
 
-## نگهداری، توقف و پاک‌کردن داده
+## Maintenance, Stopping, and Deleting Data
 
-متوقف کردن سرویس‌ها، بدون حذف دیتابیس:
+Stop the services without deleting the database:
 
 ```bash
 docker compose down
 ```
 
-دوباره اجرای دستور اصلی، سرویس‌ها را بالا می‌آورد و تاریخچهٔ PostgreSQL باقی می‌ماند. **این دستور را فقط وقتی بزنید که عمداً می‌خواهید تاریخچهٔ دیتابیس و وضعیت Grafana پاک شود:**
+Running the main command again brings the services back up, and the PostgreSQL history is preserved. **Run this command only when you intentionally want to erase the database history and the Grafana state:**
 
 ```bash
 docker compose down -v
 ```
 
-CSVها در `data/` و گزارش‌ها در `reports/` روی پوشهٔ پروژه می‌مانند؛ حذف volume دیتابیس آن فایل‌ها را پاک نمی‌کند.
+The CSVs in `data/` and the reports in `reports/` remain in the project folder; deleting the database volume does not remove those files.
 
-## رفع خطاهای رایج
+## Troubleshooting Common Errors
 
-- **پورت 3001 اشغال است:** در `.env` مقدار `GRAFANA_PORT` را مثلاً روی `3002` بگذارید و Grafana را در `http://localhost:3002` باز کنید.
-- **ساخت image بعد از تغییر کد نتیجهٔ قدیمی می‌دهد:** pipeline را دوباره build کنید و بعد اجرا کنید: `docker compose --profile tools build pipeline`.
-- **CSV ساخته نشده یا تعداد ردیف صفر است:** مسیر فایل‌های CSV در خروجی اجرا و پیام‌های اسکرپر را بررسی کنید؛ برای دریافت دادهٔ زنده، دسترسی شبکه به باما و شیپور لازم است.
-- **`--pages` بیشتر زدم ولی خودروها بیشتر نشدند:** تعداد صفحه سقف است. خلاصهٔ اسکرپر را برای پیام «پارامتر صفحه‌بندی پذیرفته نشد» ببینید؛ در این حالت باما صفحهٔ بعد را ارائه نکرده و باید جست‌وجوهای مدل دیگری به `cars/queries.txt` اضافه شوند.
-- **داشبورد بعد از تغییر فایل JSON عوض نشد:** Grafana را با `docker compose restart grafana` راه‌اندازی مجدد کنید.
-- **داده در Grafana نیست:** مطمئن شوید بخش تحلیل و ذخیرهٔ همان بازار موفق تمام شده، سپس شمارندهٔ PostgreSQL بالا را بررسی و Refresh کنید.
-- **برآورد یا نامزد غیرعادی صفر است:** شرط همتاهای بخش قبل را بررسی کنید؛ این مورد برای دادهٔ کم یا محله‌های پراکنده طبیعی است.
+- **Port 3001 is in use:** In `.env`, set `GRAFANA_PORT` to, for example, `3002`, and open Grafana at `http://localhost:3002`.
+- **Building the image after a code change gives old results:** Rebuild the pipeline, then run it: `docker compose --profile tools build pipeline`.
+- **CSV was not created or the row count is zero:** Check the CSV file paths in the run output and the scraper messages; network access to Bama and Sheypoor is required to fetch live data.
+- **I increased `--pages` but the number of cars did not increase:** The page count is a cap. Check the scraper summary for the message "pagination parameter was not accepted"; in that case Bama did not serve the next page, and searches for other models must be added to `cars/queries.txt`.
+- **The dashboard did not change after editing a JSON file:** Restart Grafana with `docker compose restart grafana`.
+- **There is no data in Grafana:** Make sure the analysis and save step for that market finished successfully, then check the PostgreSQL counter above and click Refresh.
+- **The estimate or anomalous candidates are zero:** Check the peer conditions in the previous section; this is normal for sparse data or scattered neighborhoods.
 
-## پوشه‌ها
+## Folders
 
 ```text
-cars/                  اسکرپر باما، جست‌وجوها و تحلیل خودرو
-real_estate/           اسکرپر شیپور و تحلیل املاک
-pipeline/              اجرای هماهنگ دو اسکرپر و وابستگی‌های Docker
-grafana/               تنظیم datasource، provisioning و داشبوردها
-data/cars/             CSV هر دور خودرو (محلی)
-data/real_estate/      CSV هر دور املاک (محلی)
-reports/<run-id>/      گزارش‌ها و نمودارهای هر دور (محلی)
+cars/                  Bama scraper, searches, and car analysis
+real_estate/           Sheypoor scraper and real-estate analysis
+pipeline/              Orchestrated run of both scrapers and Docker dependencies
+grafana/               Datasource config, provisioning, and dashboards
+data/cars/             CSV for each car run (local)
+data/real_estate/      CSV for each real-estate run (local)
+reports/<run-id>/      Reports and charts for each run (local)
 ```
